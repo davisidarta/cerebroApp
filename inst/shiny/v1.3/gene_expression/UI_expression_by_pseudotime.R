@@ -86,14 +86,12 @@ output[["expression_by_pseudotime"]] <- plotly::renderPlotly({
     !is.null(input[["expression_by_pseudotime_show_trend_line"]]),
     input[["expression_by_pseudotime_trend_line_bandwidth"]],
     input[["expression_by_pseudotime_trend_line_width"]],
-    gene_expression_plot_data()
+    expression_plot_data(),
+    "pseudotime" %in% colnames(expression_plot_data())
   )
 
-  req(
-    "pseudotime" %in% colnames(gene_expression_plot_data())
-  )
-
-  cells_df <- gene_expression_plot_data()
+  ##
+  cells_df <- expression_plot_data()
 
   ## prepare hover info
   hover_info <- buildHoverInfoForProjections(cells_df)

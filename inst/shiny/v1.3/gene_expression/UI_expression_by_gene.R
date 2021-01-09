@@ -33,7 +33,7 @@ output[["expression_by_gene"]] <- plotly::renderPlotly({
 
   ## prepare expression levels, depending on genes provided by user
   ## ... if no genes are available
-  if ( length(genesToPlot()$genes_to_display_present) == 0 ) {
+  if ( length(expression_genes_to_plot()$genes_to_display_present) == 0 ) {
 
     ## manually prepare empty data frame
     expression_levels <- data.frame(
@@ -42,12 +42,12 @@ output[["expression_by_gene"]] <- plotly::renderPlotly({
     )
 
   ## ... if at least 1 gene has been provided
-  } else if ( length(genesToPlot()$genes_to_display_present) >= 1 ) {
+  } else if ( length(expression_genes_to_plot()$genes_to_display_present) >= 1 ) {
 
     ## - calculate mean expression for every gene across all cells
     ## - sort genes by mean expression from high to low
     ## - show only first 50 genes if more are available
-    expression_levels <- getMeanExpressionForGenes(genesToPlot()$genes_to_display_present) %>%
+    expression_levels <- getMeanExpressionForGenes(expression_genes_to_plot()$genes_to_display_present) %>%
     dplyr::slice_max(expression, n = 50)
   }
 

@@ -5,461 +5,6 @@
 ##----------------------------------------------------------------------------##
 
 ##----------------------------------------------------------------------------##
-## Function to plot expression of multiple genes in separate facets.
-##----------------------------------------------------------------------------##
-
-plotExpressionMultiplePanels <- function(table) {
-
-  ## make ggplot2 functions available
-  require("ggplot2")
-
-  ## decide how many panel columns should be used
-  ## below 6 panels, use 2 columns, from 6-8 panels use 3 columns
-  number_of_genes <- length(unique(gene_expression_plot_data()$gene))
-  number_of_panel_columns <- ifelse(number_of_genes < 6, 2, 3)
-
-  ## get X and Y scale limits
-  xlim <- c(
-    input[["expression_projection_scale_x_manual_range"]][1],
-    input[["expression_projection_scale_x_manual_range"]][2]
-  )
-  ylim <- c(
-    input[["expression_projection_scale_y_manual_range"]][1],
-    input[["expression_projection_scale_y_manual_range"]][2]
-  )
-
-  ## prepare plot
-  plot <- ggplot(
-      table,
-      aes_q(
-        x = as.name(colnames(table)[1]),
-        y = as.name(colnames(table)[2]),
-        color = as.name("level")
-      )
-    ) +
-    geom_point(
-      size = input[["expression_projection_point_size"]]/10,
-      alpha = input[["expression_projection_point_opacity"]]
-    ) +
-    lims(x = xlim, y = ylim) +
-    theme_bw() +
-    facet_wrap(~gene, ncol = number_of_panel_columns)
-
-  ## check if selected color scale
-  ## ... selected color scale is "viridis"
-  if ( input[["expression_projection_color_scale"]] == 'viridis' ) {
-
-    ## add color scale to plot
-    plot <- plot +
-      viridis::scale_color_viridis(
-        option = "viridis",
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = -1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-
-  ## ... selected color scale is anything else than "viridis"
-  } else {
-
-    ## add color scale to plot
-    plot <- plot +
-      scale_color_distiller(
-        palette = input[["expression_projection_color_scale"]],
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = 1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-  }
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
-## Function to plot expression in single panel in 3D.
-##----------------------------------------------------------------------------##
-
-plotExpressionSinglePanel3D <- function(table, color_scale, hover_info) {
-
-  ## prepare plot
-  plot <- plotly::plot_ly(
-      table,
-      x = table[,1],
-      y = table[,2],
-      z = table[,3],
-      type = "scatter3d",
-      mode = "markers",
-      marker = list(
-        colorbar = list(
-          title = "Expression",
-          ticks = 'outside',
-          outlinewidth = 1,
-          outlinecolor = 'black'
-        ),
-        color = ~level,
-        opacity = input[["expression_projection_point_opacity"]],
-        colorscale = color_scale,
-        cauto = FALSE,
-        cmin = input[["expression_projection_color_scale_range"]][1],
-        cmax = input[["expression_projection_color_scale_range"]][2],
-        reversescale = TRUE,
-        line = list(
-          color = "rgb(196,196,196)",
-          width = 1
-        ),
-        size = input[["expression_projection_point_size"]]
-      ),
-      hoverinfo = "text",
-      text = ~hover_info,
-      source = "expression_projection"
-    ) %>%
-    plotly::layout(
-      scene = list(
-        xaxis = list(
-          title = colnames(table)[1],
-          mirror = TRUE,
-          showline = TRUE,
-          zeroline = FALSE
-        ),
-        yaxis = list(
-          title = colnames(table)[2],
-          mirror = TRUE,
-          showline = TRUE,
-          zeroline = FALSE
-        ),
-        zaxis = list(
-          title = colnames(table)[3],
-          mirror = TRUE,
-          showline = TRUE,
-          zeroline = FALSE
-        )
-      ),
-      hoverlabel = list(
-        font = list(
-          size = 11,
-          color = "black"
-        ),
-        bgcolor = "lightgrey",
-        align = 'left'
-      )
-    )
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
-## Function to plot expression in single panel in 2D.
-##----------------------------------------------------------------------------##
-
-plotExpressionSinglePanel2D <- function(table, color_scale, hover_info) {
-
-  ## prepare plot
-  plot <- plotly::plot_ly(
-      table,
-      x = table[,1],
-      y = table[,2],
-      type = "scatter",
-      mode = "markers",
-      marker = list(
-        colorbar = list(
-          title = "Expression",
-          ticks = 'outside',
-          outlinewidth = 1,
-          outlinecolor = 'black'
-        ),
-        color = ~level,
-        opacity = input[["expression_projection_point_opacity"]],
-        colorscale = color_scale,
-        cauto = FALSE,
-        cmin = input[["expression_projection_color_scale_range"]][1],
-        cmax = input[["expression_projection_color_scale_range"]][2],
-        reversescale = TRUE,
-        line = list(
-          color = "rgb(196,196,196)",
-          width = 1
-        ),
-        size = input[["expression_projection_point_size"]]
-      ),
-      hoverinfo = "text",
-      text = ~hover_info,
-      source = "expression_projection"
-    ) %>%
-    plotly::layout(
-      xaxis = list(
-        title = colnames(table)[1],
-        mirror = TRUE,
-        showline = TRUE,
-        zeroline = FALSE,
-        range = c(
-          input[["expression_projection_scale_x_manual_range"]][1],
-          input[["expression_projection_scale_x_manual_range"]][2]
-        )
-      ),
-      yaxis = list(
-        title = colnames(table)[2],
-        mirror = TRUE,
-        showline = TRUE,
-        zeroline = FALSE,
-        range = c(
-          input[["expression_projection_scale_y_manual_range"]][1],
-          input[["expression_projection_scale_y_manual_range"]][2]
-        )
-      ),
-      dragmode = "pan",
-      hoverlabel = list(
-        font = list(
-          size = 11,
-          color = "black"
-        ),
-        bgcolor = "lightgrey",
-        align = 'left'
-      )
-    )
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
-## Function to plot expression in trajectory.
-##----------------------------------------------------------------------------##
-
-plotExpressionSinglePanel2DTrajectory <- function(
-  table,
-  trajectory_edges,
-  color_scale,
-  hover_info
-) {
-
-  ## convert edges of trajectory into list format to plot with plotly
-  trajectory_lines <- list()
-  for (i in 1:nrow(trajectory_edges) ) {
-    line = list(
-      type = "line",
-      line = list(color = "black"),
-      xref = "x",
-      yref = "y",
-      x0 = trajectory_edges$source_dim_1[i],
-      y0 = trajectory_edges$source_dim_2[i],
-      x1 = trajectory_edges$target_dim_1[i],
-      y1 = trajectory_edges$target_dim_2[i]
-    )
-    trajectory_lines <- c(trajectory_lines, list(line))
-  }
-
-  ##
-  plot <- plotly::plot_ly(
-      data = table,
-      x = ~DR_1,
-      y = ~DR_2,
-      type = "scatter",
-      mode = "markers",
-      marker = list(
-        colorbar = list(
-          title = "Expression",
-          ticks = 'outside',
-          outlinewidth = 1,
-          outlinecolor = 'black'
-        ),
-        color = ~level,
-        opacity = input[["expression_projection_point_opacity"]],
-        colorscale = color_scale,
-        cauto = FALSE,
-        cmin = input[["expression_projection_color_scale_range"]][1],
-        cmax = input[["expression_projection_color_scale_range"]][2],
-        reversescale = TRUE,
-        line = list(
-          color = "rgb(196,196,196)",
-          width = 1
-        ),
-        size = input[["expression_projection_point_size"]]
-      ),
-      hoverinfo = "text",
-      text = ~hover_info,
-      source = "expression_projection"
-    ) %>%
-    plotly::layout(
-      shapes = trajectory_lines,
-      xaxis = list(
-        mirror = TRUE,
-        showline = TRUE,
-        zeroline = FALSE,
-        range = c(
-          input[["expression_projection_scale_x_manual_range"]][1],
-          input[["expression_projection_scale_x_manual_range"]][2]
-        )
-      ),
-      yaxis = list(
-        mirror = TRUE,
-        showline = TRUE,
-        zeroline = FALSE,
-        range = c(
-          input[["expression_projection_scale_y_manual_range"]][1],
-          input[["expression_projection_scale_y_manual_range"]][2]
-        )
-      ),
-      hoverlabel = list(
-        font = list(
-          size = 11,
-          color = "black"
-        ),
-        bgcolor = "lightgrey",
-        align = 'left'
-      )
-    )
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
-## Function to plot expression in single panel in 2D (for export).
-##----------------------------------------------------------------------------##
-
-plotExpressionSinglePanel2DExport <- function(table) {
-
-  ## make ggplot2 functions available
-  require("ggplot2")
-
-  ## get X and Y scale limits
-  xlim <- c(
-    input[["expression_projection_scale_x_manual_range"]][1],
-    input[["expression_projection_scale_x_manual_range"]][2]
-  )
-  ylim <- c(
-    input[["expression_projection_scale_y_manual_range"]][1],
-    input[["expression_projection_scale_y_manual_range"]][2]
-  )
-
-  ## prepare plot
-  plot <- ggplot(
-      table,
-      aes_q(
-        x = as.name(colnames(table)[1]),
-        y = as.name(colnames(table)[2]),
-        fill = as.name("level")
-      )
-    ) +
-    geom_point(
-      shape = 21,
-      size = input[["expression_projection_point_size"]]/3,
-      stroke = 0.2,
-      color = "#c4c4c4",
-      alpha = input[["expression_projection_point_opacity"]]
-    ) +
-    lims(x = xlim, y = ylim) +
-    theme_bw()
-
-  ## check if selected color scale
-  ## ... selected color scale is "viridis"
-  if ( input[["expression_projection_color_scale"]] == 'viridis' ) {
-
-    ## add color scale to plot
-    plot <- plot +
-      viridis::scale_fill_viridis(
-        option = "viridis",
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = -1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-
-  ## ... selected color scale is anything else than "viridis"
-  } else {
-
-    ## add color scale to plot
-    plot <- plot +
-      scale_fill_distiller(
-        palette = input[["expression_projection_color_scale"]],
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = 1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-  }
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
-## Function to plot expression in trajectory (for export).
-##----------------------------------------------------------------------------##
-
-plotExpressionSinglePanel2DTrajectoryExport <- function(
-  table,
-  trajectory_edges
-) {
-
-  ## start building the plot
-  plot <- ggplot() +
-    geom_point(
-      data = table,
-      aes_string(
-        x = colnames(table)[1],
-        y = colnames(table)[2],
-        fill = as.name("level")
-      ),
-      shape = 21,
-      size = input[["expression_projection_point_size"]]/3,
-      stroke = 0.2,
-      color = "#c4c4c4",
-      alpha = input[["expression_projection_point_opacity"]]
-    ) +
-    geom_segment(
-      data = trajectory_edges,
-      aes(
-        source_dim_1,
-        source_dim_2,
-        xend = target_dim_1,
-        yend = target_dim_2
-      ),
-      size = 0.75, linetype = "solid", na.rm = TRUE
-    ) +
-    theme_bw()
-
-  ## check if selected color scale
-  ## ... selected color scale is "viridis"
-  if ( input[["expression_projection_color_scale"]] == 'viridis' ) {
-
-    ## add color scale to plot
-    plot <- plot +
-      viridis::scale_fill_viridis(
-        option = "viridis",
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = -1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-
-  ## ... selected color scale is anything else than "viridis"
-  } else {
-
-    ## add color scale to plot
-    plot <- plot +
-      scale_fill_distiller(
-        palette = input[["expression_projection_color_scale"]],
-        limits = input[["expression_projection_color_scale_range"]],
-        oob = scales::squish,
-        direction = 1,
-        name = "Log-normalised\nexpression",
-        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-      )
-  }
-
-  ##
-  return(plot)
-}
-
-##----------------------------------------------------------------------------##
 ## UI element with layout for user input and plot.
 ##----------------------------------------------------------------------------##
 
@@ -573,13 +118,8 @@ output[["expression_projection_UI"]] <- renderUI({
                 ),
                 style = "color: black !important;",
                 tagList(
-                  ## TODO: figure out how to vertically center box and label
-                  shinyWidgets::awesomeCheckbox(
-                    inputId = "expression_projection_show_genes_in_separate_panels",
-                    label = HTML("Show genes in separate panels<br>(experimental)"),
-                    value = FALSE
-                  ),
-                  hr(),
+                  uiOutput("expression_projection_point_border_UI"),
+                  uiOutput("expression_projection_genes_in_separate_panels_UI"),
                   uiOutput("expression_projection_scales_UI")
                 )
               ),
@@ -626,7 +166,9 @@ output[["expression_projection_input_type_UI"]] <- renderUI({
       label = 'Gene(s)',
       choices = data.table::as.data.table(data.frame("Genes" = getGeneNames())),
       multiple = TRUE,
-      options = list(create = TRUE)
+      options = list(
+        create = TRUE
+      )
     )
   } else if ( input[["expression_analysis_mode"]] == "Gene set" ) {
     selectizeInput(
@@ -753,7 +295,7 @@ output[["expression_projection_select_additional_parameters_UI"]] <- renderUI({
       value = scatter_plot_point_opacity[["default"]]
     ),
     sliderInput(
-      "expression_percentage_cells_to_show",
+      "expression_projection_percentage_cells_to_show",
       label = "Show % of cells",
       min = scatter_plot_percentage_cells_to_show[["min"]],
       max = scatter_plot_percentage_cells_to_show[["max"]],
@@ -809,17 +351,22 @@ expression_projection_additional_parameters_info <- list(
 ##----------------------------------------------------------------------------##
 
 output[["expression_projection_group_filters_UI"]] <- renderUI({
+
   group_filters <- list()
+
   for ( i in getGroups() ) {
     group_filters[[i]] <- shinyWidgets::pickerInput(
       paste0("expression_projection_group_filter_", i),
       label = i,
       choices = getGroupLevels(i),
       selected = getGroupLevels(i),
-      options = list("actions-box" = TRUE),
+      options = list(
+        "actions-box" = TRUE
+      ),
       multiple = TRUE
     )
   }
+
   group_filters
 })
 
@@ -867,7 +414,7 @@ output[["expression_projection_color_scale_UI"]] <- renderUI({
   selectInput(
     "expression_projection_color_scale",
     label = "Color scale",
-    choices = c("YlGnBu", "YlOrRd","Blues","Greens","Reds","RdBu","viridis"),
+    choices = c("YlGnBu", "YlOrRd","Blues","Greens","Reds","RdBu","Viridis"),
     selected = "YlGnBu"
   )
 })
@@ -885,8 +432,13 @@ outputOptions(
 
 output[["expression_projection_color_scale_range_UI"]] <- renderUI({
 
+  ##
+  req(
+    expression_plot_data()
+  )
+
   ## get range of expression levels
-  expression_range <- range(gene_expression_plot_data()$level)
+  expression_range <- range(expression_plot_data()$level)
 
   ## adjust expression range for color scale
   ## ... there is no range (from 0 to 0)
@@ -896,7 +448,7 @@ output[["expression_projection_color_scale_range_UI"]] <- renderUI({
   ) {
 
     ## set range to 0-1
-    expression_range[2] = 1
+    expression_range[2] <- 1
 
   ## ... otherwise
   } else {
@@ -954,15 +506,60 @@ expression_projection_color_scale_info <- list(
 )
 
 ##----------------------------------------------------------------------------##
+## UI elements with switch to draw border around cells.
+##----------------------------------------------------------------------------##
+
+output[["expression_projection_point_border_UI"]] <- renderUI({
+  shinyWidgets::awesomeCheckbox(
+    inputId = "expression_projection_point_border",
+    label = "Draw border around cells",
+    value = FALSE
+  )
+})
+
+## make sure elements are loaded even though the box is collapsed
+outputOptions(
+  output,
+  "expression_projection_point_border_UI",
+  suspendWhenHidden = FALSE
+)
+
+##----------------------------------------------------------------------------##
+## UI elements with switch to plot genes in separate panels.
+##----------------------------------------------------------------------------##
+
+output[["expression_projection_genes_in_separate_panels_UI"]] <- renderUI({
+  shinyWidgets::awesomeCheckbox(
+    inputId = "expression_projection_genes_in_separate_panels",
+    label = HTML("Show genes in separate panels<br>(experimental)"),
+    value = FALSE
+  )
+})
+
+## make sure elements are loaded even though the box is collapsed
+outputOptions(
+  output,
+  "expression_projection_genes_in_separate_panels_UI",
+  suspendWhenHidden = FALSE
+)
+
+##----------------------------------------------------------------------------##
 ## UI elements to set X and Y scales in plot. Separate element because it
 ## requires user input from other UI elements.
 ##----------------------------------------------------------------------------##
 output[["expression_projection_scales_UI"]] <- renderUI({
 
-  ## don't proceed without these inputs
-  req(
-    input[["expression_projection_to_display"]]
-  )
+  req(input[["expression_projection_to_display"]])
+
+  ##
+  if (
+    is.null(input[["expression_projection_to_display"]]) ||
+    is.na(input[["expression_projection_to_display"]])
+  ) {
+    projection_to_display <- availableProjections()[1]
+  } else {
+    projection_to_display <- input[["expression_projection_to_display"]]
+  }
 
   ## check if projection or trajectory should be shown
   ## ... projection
@@ -993,6 +590,7 @@ output[["expression_projection_scales_UI"]] <- renderUI({
     XYranges <- getXYranges(trajectory_data[["meta"]])
   }
 
+  ##
   tagList(
     sliderInput(
       "expression_projection_scale_x_manual_range",
@@ -1026,78 +624,148 @@ output[["expression_projection"]] <- plotly::renderPlotly({
 
   ## don't proceed without these inputs
   req(
-    input[["expression_projection_to_display"]],
-    input[["expression_projection_point_size"]],
-    input[["expression_projection_point_opacity"]],
-    input[["expression_projection_color_scale"]],
-    input[["expression_projection_color_scale_range"]],
-    input[["expression_projection_scale_x_manual_range"]],
-    input[["expression_projection_scale_y_manual_range"]],
-    gene_expression_plot_data()
+    expression_projection_inputs(),
+    expression_projection_color_inputs(),
+    expression_plot_data()
   )
 
-  ## check selected color scale
-  ## ... selected color scale is "viridis"
-  if ( input[["expression_projection_color_scale"]] == 'viridis' ) {
-    color_scale <- 'Viridis'
+  ##
+  parameters <- expression_projection_inputs()
+  parameters_color <- expression_projection_color_inputs()
 
-  ## ... selected color scale is anything else than "viridis"
-  } else {
-    color_scale <- input[["expression_projection_color_scale"]]
-  }
+  ## isolate() because we don't want the plot to update when the expression data
+  ## updates; instead, it will be updated when the color range changes, which is
+  ## triggered to be updated with a change in the expression data
+  cells_df <- isolate(expression_plot_data())
 
-  ## check if projection or trajectory should be shown
-  ## ... projection
-  if ( input[["expression_projection_to_display"]] %in% availableProjections() ) {
+  ##
+  projection_to_display <- parameters[["projection"]]
 
-    ## check if user requested to show expression in separate panels
-    ## ... separate panels requested, two-dimensional projection selected, and
-    ##     "gene" column present
-    if (
-      ncol(getProjection(input[["expression_projection_to_display"]])) == 2 &&
-      input[["expression_projection_show_genes_in_separate_panels"]] == TRUE &&
-      "gene" %in% colnames(gene_expression_plot_data()) == TRUE
-    ) {
+  # ## check if border around cells should be drawn and set parameters if so
+  # if ( parameters[["draw_border"]] == TRUE ) {
+  #   point_border <- list(
+  #     color = "rgb(196,196,196)",
+  #     width = 1
+  #   )
+  # } else {
+  #   point_border <- NULL
+  # }
 
-      ## prepare plot
-      plot <- plotExpressionMultiplePanels(gene_expression_plot_data())
+  # ## bring cells in order, either random or highest expression on top
+  # ## ... random
+  # if ( parameters[["plot_order"]] == 'Random' ) {
+  #   cells_df <- cells_df[ sample(1:nrow(cells_df)) , ]
 
-      ## convert ggplot to plotly
-      plot <- plotly::ggplotly(plot)
+  # ## ... highest expression on top
+  # } else if ( parameters[["plot_order"]] == "Highest expression on top" ) {
+  #   cells_df <- dplyr::arrange(cells_df, level)
+  # }
 
-    ## ... if conditions for multiple panels are not met
-    } else {
 
-      ## prepare hover info
-      hover_info <- buildHoverInfoForProjections(gene_expression_plot_data())
+  # ## prepare hover info
+  # if ( parameters[["hover_info"]] == TRUE ) {
 
-      ## add expression levels to hover info
-      hover_info <- glue::glue(
-        "{hover_info}
-        <b>Expression level</b>: {formatC(gene_expression_plot_data()$level, format = 'f', digits = 3)}"
-      )
+  #   hover_info <- buildHoverInfoForProjections(cells_df)
 
-      ## check if selection projection consists of 2 or 3 dimensions
-      ## ... selection projection consists of 3 dimensions
-      if ( ncol(getProjection(input[["expression_projection_to_display"]])) == 3 ) {
+  #   ## add expression levels to hover info
+  #   hover_info <- glue::glue(
+  #     "{hover_info}
+  #     <b>Expression level</b>: {formatC(cells_df$level, format = 'f', digits = 3)}"
+  #   )
 
-        ## prepare plot
-        plot <- plotExpressionSinglePanel3D(gene_expression_plot_data(), color_scale, hover_info)
+  #   ##
+  #   parameter_hoverinfo <- "text"
+  #   parameter_text <- ~hover_info
 
-      ## ... selection projection consists of 2 dimensions
-      } else if ( ncol(getProjection(input[["expression_projection_to_display"]])) == 2 ) {
+  # ##
+  # } else {
 
-        ## prepare plot
-        plot <- plotExpressionSinglePanel2D(gene_expression_plot_data(), color_scale, hover_info)
-      }
-    }
+  #   hover_info <- NULL
+  #   parameter_hoverinfo <- "skip"
+  #   parameter_text <- NULL
+  # }
 
-  ## ... trajectory
-  } else {
+
+  ## what kind of plot
+  ## ... projection, 2D, single panel
+  if (
+    parameters[["projection"]] %in% availableProjections() &&
+    ncol(getProjection(parameters[["projection"]])) == 2 &&
+    parameters[["separate_panels"]] == FALSE &&
+    "gene" %in% colnames(cells_df) == FALSE
+  ) {
+
+    plot <- pltExpProj2DSglPan(
+      df = cells_df,
+      point_size = parameters[["point_size"]],
+      point_opacity = parameters[["point_opacity"]],
+      draw_border = parameters[["draw_border"]],
+      plot_order = parameters[["plot_order"]],
+      color_scale = parameters_color[["color_scale"]],
+      color_range = parameters_color[["color_range"]],
+      x_range = parameters[["x_range"]],
+      y_range = parameters[["y_range"]],
+      show_hover_info = parameters[["hover_info"]]
+    )
+
+  ## ... projection, 2D, multiple panels
+  } else if (
+    parameters[["projection"]] %in% availableProjections() &&
+    ncol(getProjection(parameters[["projection"]])) == 2 &&
+    parameters[["separate_panels"]] == TRUE &&
+    "gene" %in% colnames(cells_df) == TRUE
+  ) {
+
+    plot <- pltExpProj2DMultPan(
+      df = cells_df,
+      point_size = parameters[["point_size"]],
+      point_opacity = parameters[["point_opacity"]],
+      plot_order = parameters[["plot_order"]],
+      color_scale = parameters_color[["color_scale"]],
+      color_range = parameters_color[["color_range"]],
+      x_range = parameters[["x_range"]],
+      y_range = parameters[["y_range"]]
+    )
+
+    ## convert ggplot to plotly
+    plot <- plotly::ggplotly(
+      plot,
+      source = "expression_projection"
+    )
+
+  ## ... projection, 3D
+  } else if (
+    parameters[["projection"]] %in% availableProjections() &&
+    ncol(getProjection(parameters[["projection"]])) == 3 &&
+    parameters[["separate_panels"]] == FALSE &&
+    "gene" %in% colnames(cells_df) == FALSE
+  ) {
+
+    plot <- pltExpProj3DSglPan(
+      df = cells_df,
+      point_size = parameters[["point_size"]],
+      point_opacity = parameters[["point_opacity"]],
+      draw_border = parameters[["draw_border"]],
+      plot_order = parameters[["plot_order"]],
+      color_scale = parameters_color[["color_scale"]],
+      color_range = parameters_color[["color_range"]],
+      x_range = parameters[["x_range"]],
+      y_range = parameters[["y_range"]],
+      show_hover_info = parameters[["hover_info"]]
+    )
+
+  ## ... trajectory, 2D, single panel
+  } else if (
+    parameters[["projection"]] %in% availableProjections() == FALSE &&
+    grepl(parameters[["projection"]], pattern = ' // ') &&
+    parameters[["separate_panels"]] == FALSE &&
+    "gene" %in% colnames(cells_df) == FALSE
+  ) {
 
     ## split selection into method and name
-    selection <- strsplit(input[["expression_projection_to_display"]], split = ' // ')[[1]]
+    selection <- strsplit(projection_to_display, split = ' // ')[[1]]
 
+    ##
     req(
       selection[1] %in% getMethodsForTrajectories(),
       selection[2] %in% getNamesOfTrajectories(selection[1])
@@ -1105,31 +773,192 @@ output[["expression_projection"]] <- plotly::renderPlotly({
 
     ## collect trajectory data
     trajectory_data <- getTrajectory(
-        selection[1],
-        selection[2]
-      )
-
-    ## prepare hover info
-    hover_info <- buildHoverInfoForProjections(gene_expression_plot_data())
-
-    ## add expression levels to hover info
-    hover_info <- glue::glue(
-      "{hover_info}
-      <b>State</b>: {gene_expression_plot_data()$state}
-      <b>Pseudotime</b>: {formatC(gene_expression_plot_data()$pseudotime, format = 'f', digits = 2)}
-      <b>Expression level</b>: {formatC(gene_expression_plot_data()$level, format = 'f', digits = 3)}"
+      selection[1],
+      selection[2]
     )
 
-    plot <- plotExpressionSinglePanel2DTrajectory(
-        gene_expression_plot_data(),
-        trajectory_data[["edges"]],
-        color_scale,
-        hover_info
-      )
+    ##
+    plot <- pltExpTrj2DSglPan(
+      df = cells_df,
+      trajectory_edges = trajectory_data[["edges"]],
+      point_size = parameters[["point_size"]],
+      point_opacity = parameters[["point_opacity"]],
+      draw_border = parameters[["draw_border"]],
+      plot_order = parameters[["plot_order"]],
+      color_scale = parameters_color[["color_scale"]],
+      color_range = parameters_color[["color_range"]],
+      x_range = parameters[["x_range"]],
+      y_range = parameters[["y_range"]],
+      show_hover_info = parameters[["hover_info"]]
+    )
+
+  ## ... unrecognized state
+  } else {
+    plot <- plotly::plotly_empty()
   }
 
+
+
+
+
+
+
+
+
+
+  # ## check if projection or trajectory should be shown
+  # ## ... projection
+  # if ( projection_to_display %in% availableProjections() ) {
+
+  #   ## check if user requested to show expression in separate panels
+  #   ## ... separate panels requested, two-dimensional projection selected, and
+  #   ##     "gene" column present
+  #   if (
+  #     ncol(getProjection(projection_to_display)) == 2 &&
+  #     parameters[["separate_panels"]] == TRUE &&
+  #     "gene" %in% colnames(cells_df) == TRUE
+  #   ) {
+
+  #     ## prepare plot
+  #     plot <- pltExpProj2DMultPan(
+  #       df = cells_df,
+  #       point_size = parameters[["point_size"]],
+  #       point_opacity = parameters[["point_opacity"]],
+  #       color_scale = parameters_color[["color_scale"]],
+  #       color_range = parameters_color[["color_range"]],
+  #       x_range = parameters[["x_range"]],
+  #       y_range = parameters[["y_range"]]
+  #     )
+
+  #     ## convert ggplot to plotly
+  #     plot <- plotly::ggplotly(plot)
+
+  #   ## ... if conditions for multiple panels are not met
+  #   } else {
+
+  #     ## prepare hover info
+  #     if ( parameters[["hover_info"]] == TRUE ) {
+
+  #       hover_info <- buildHoverInfoForProjections(cells_df)
+
+  #       ## add expression levels to hover info
+  #       hover_info <- glue::glue(
+  #         "{hover_info}
+  #         <b>Expression level</b>: {formatC(cells_df$level, format = 'f', digits = 3)}"
+  #       )
+
+  #       ##
+  #       parameter_hoverinfo <- "text"
+  #       parameter_text <- ~hover_info
+
+  #     ##
+  #     } else {
+
+  #       hover_info <- NULL
+  #       parameter_hoverinfo <- "skip"
+  #       parameter_text <- NULL
+  #     }
+
+  #     ## check if selection projection consists of 2 or 3 dimensions
+  #     ## ... selection projection consists of 2 dimensions
+  #     if ( ncol(getProjection(projection_to_display)) == 2 ) {
+
+  #       ## prepare plot
+  #       plot <- pltExpProj2DSglPan(
+  #         df = cells_df,
+  #         point_size = parameters[["point_size"]],
+  #         point_opacity = parameters[["point_opacity"]],
+  #         point_border = point_border,
+  #         color_scale = parameters_color[["color_scale"]],
+  #         color_range = parameters_color[["color_range"]],
+  #         x_range = parameters[["x_range"]],
+  #         y_range = parameters[["y_range"]],
+  #         parameter_hoverinfo = parameter_hoverinfo,
+  #         parameter_text = parameter_text,
+  #         hover_info = hover_info
+  #       )
+
+  #     ## ... selection projection consists of 3 dimensions
+  #     } else if ( ncol(getProjection(projection_to_display)) == 3 ) {
+
+  #       ## prepare plot
+  #       plot <- pltExpProj3DSglPan(
+  #         df = cells_df,
+  #         point_size = parameters[["point_size"]],
+  #         point_opacity = parameters[["point_opacity"]],
+  #         point_border = point_border,
+  #         color_scale = parameters_color[["color_scale"]],
+  #         color_range = parameters_color[["color_range"]],
+  #         x_range = parameters[["x_range"]],
+  #         y_range = parameters[["y_range"]],
+  #         parameter_hoverinfo = parameter_hoverinfo,
+  #         parameter_text = parameter_text,
+  #         hover_info = hover_info
+  #       )
+  #     }
+  #   }
+
+  # ## ... trajectory
+  # } else {
+
+  #   ## split selection into method and name
+  #   selection <- strsplit(projection_to_display, split = ' // ')[[1]]
+
+  #   req(
+  #     selection[1] %in% getMethodsForTrajectories(),
+  #     selection[2] %in% getNamesOfTrajectories(selection[1])
+  #   )
+
+  #   ## collect trajectory data
+  #   trajectory_data <- getTrajectory(
+  #     selection[1],
+  #     selection[2]
+  #   )
+
+  #   ## prepare hover info
+  #   if ( parameters[["hover_info"]] == TRUE ) {
+
+  #     hover_info <- buildHoverInfoForProjections(cells_df)
+
+  #     ## add expression levels to hover info
+  #     hover_info <- glue::glue(
+  #       "{hover_info}
+  #       <b>State</b>: {cells_df$state}
+  #       <b>Pseudotime</b>: {formatC(cells_df$pseudotime, format = 'f', digits = 2)}
+  #       <b>Expression level</b>: {formatC(cells_df$level, format = 'f', digits = 3)}"
+  #     )
+
+  #     ##
+  #     parameter_hoverinfo <- "text"
+  #     parameter_text <- ~hover_info
+
+  #   ##
+  #   } else {
+
+  #     hover_info <- NULL
+  #     parameter_hoverinfo <- "skip"
+  #     parameter_text <- NULL
+  #   }
+
+  #   ##
+  #   plot <- pltExpTrj2DSglPan(
+  #     df = cells_df,
+  #     trajectory_edges = trajectory_data[["edges"]],
+  #     point_size = parameters[["point_size"]],
+  #     point_opacity = parameters[["point_opacity"]],
+  #     point_border = point_border,
+  #     color_scale = parameters_color[["color_scale"]],
+  #     color_range = parameters_color[["color_range"]],
+  #     x_range = parameters[["x_range"]],
+  #     y_range = parameters[["y_range"]],
+  #     parameter_hoverinfo = parameter_hoverinfo,
+  #     parameter_text = parameter_text,
+  #     hover_info = hover_info
+  #   )
+  # }
+
   ## return plot either with WebGL or without, depending on setting
-  if ( preferences$use_webgl == TRUE ) {
+  if ( parameters[["webgl"]] == TRUE ) {
     plot %>% plotly::toWebGL()
   } else {
     plot
@@ -1142,24 +971,9 @@ output[["expression_projection"]] <- plotly::renderPlotly({
 
 output[["expression_number_of_selected_cells"]] <- renderText({
 
-  ## don't proceed without these inputs
-  req(
-    input[["expression_projection_to_display"]],
-    input[["expression_projection_point_size"]],
-    input[["expression_projection_point_opacity"]],
-    input[["expression_projection_color_scale"]],
-    input[["expression_projection_color_scale_range"]],
-    input[["expression_projection_scale_x_manual_range"]],
-    input[["expression_projection_scale_y_manual_range"]],
-    gene_expression_plot_data()
-  )
-
   ## check selection
-  ## ... selection has not been made or there is not cell in it
-  if (
-    is.null(plotly::event_data("plotly_selected", source = "expression_projection")) ||
-    length(plotly::event_data("plotly_selected", source = "expression_projection")) == 0
-  ) {
+  ## ... selection has not been made or there is no cell in it
+  if ( is.null(expression_projection_selected_cells()) ) {
 
     ## manually set counter to 0
     number_of_selected_cells <- 0
@@ -1168,7 +982,9 @@ output[["expression_number_of_selected_cells"]] <- renderText({
   } else {
 
     ## get number of selected cells
-    number_of_selected_cells <- nrow(plotly::event_data("plotly_selected", source = "expression_projection"))
+    number_of_selected_cells <- expression_projection_selected_cells() %>%
+      nrow() %>%
+      formatC(format = "f", big.mark = ",", digits = 0)
   }
 
   ## prepare string to show
@@ -1183,18 +999,18 @@ output[["expression_genes_displayed"]] <- renderText({
 
   ## don't proceed without these inputs
   req(
-    genesToPlot()
+    expression_genes_to_plot()
   )
 
   ## prepare text output from reactive data
   paste0(
     "<b>Showing expression for ",
-    length(genesToPlot()[["genes_to_display_present"]]), " gene(s):</b><br>",
-    paste0(genesToPlot()[["genes_to_display_present"]], collapse = ", "),
+    length(expression_genes_to_plot()[["genes_to_display_present"]]), " gene(s):</b><br>",
+    paste0(expression_genes_to_plot()[["genes_to_display_present"]], collapse = ", "),
     "<br><br><b>",
-    length(genesToPlot()[["genes_to_display_missing"]]),
+    length(expression_genes_to_plot()[["genes_to_display_missing"]]),
     " gene(s) are not in data set: </b><br>",
-    paste0(genesToPlot()[["genes_to_display_missing"]], collapse = ", ")
+    paste0(expression_genes_to_plot()[["genes_to_display_missing"]], collapse = ", ")
   )
 })
 
@@ -1254,15 +1070,17 @@ observeEvent(input[["expression_projection_export"]], {
 
   ## don't proceed without these inputs
   req(
-    input[["expression_projection_to_display"]],
-    input[["expression_projection_plotting_order"]],
-    input[["expression_projection_point_size"]],
-    input[["expression_projection_point_opacity"]],
-    input[["expression_projection_color_scale"]],
-    input[["expression_projection_color_scale_range"]],
-    input[["expression_projection_scale_x_manual_range"]],
-    input[["expression_projection_scale_y_manual_range"]]
+    expression_projection_inputs(),
+    expression_projection_color_inputs(),
+    expression_plot_data()
   )
+
+  ##
+  parameters <- expression_projection_inputs()
+  parameters_color <- expression_projection_color_inputs()
+
+  ##
+  cells_df <- expression_plot_data()
 
   ## open dialog to select where plot should be saved and how the file should
   ## be named
@@ -1287,11 +1105,11 @@ observeEvent(input[["expression_projection_export"]], {
 
   ## check if projection or trajectory should be shown
   ## ... projection
-  if ( input[["expression_projection_to_display"]] %in% availableProjections() ) {
+  if ( parameters[["projection"]] %in% availableProjections() ) {
 
     ## check if selection projection consists of 2 or 3 dimensions
     ## ... selection projection consists of 3 dimensions
-    if ( ncol(getProjection(input[["expression_projection_to_display"]])) == 3 ) {
+    if ( ncol(getProjection(parameters[["projection"]])) == 3 ) {
 
       ## give error message
       shinyWidgets::sendSweetAlert(
@@ -1302,22 +1120,40 @@ observeEvent(input[["expression_projection_export"]], {
       )
 
     ## ... selection projection consists of 2 dimensions
-    } else if ( ncol(getProjection(input[["expression_projection_to_display"]])) == 2 ) {
+    } else if ( ncol(getProjection(parameters[["projection"]])) == 2 ) {
 
       ## ... separate panels requested and "gene" column present
       if (
-        input[["expression_projection_show_genes_in_separate_panels"]] == TRUE &&
-        "gene" %in% colnames(gene_expression_plot_data()) == TRUE
+        input[["expression_projection_genes_in_separate_panels"]] == TRUE &&
+        "gene" %in% colnames(cells_df) == TRUE
       ) {
 
         ## prepare plot
-        plot <- plotExpressionMultiplePanels(gene_expression_plot_data())
+        plot <- pltExpProj2DMultPanExp(
+          df = cells_df,
+          point_size = parameters[["point_size"]],
+          point_opacity = parameters[["point_opacity"]],
+          point_border = parameters[["draw_border"]],
+          color_scale = parameters_color[["color_scale"]],
+          color_range = parameters_color[["color_range"]],
+          x_range = parameters[["x_range"]],
+          y_range = parameters[["y_range"]]
+        )
 
       ## ...
       } else {
 
         ## prepare plot
-        plot <- plotExpressionSinglePanel2DExport(gene_expression_plot_data())
+        plot <- pltExpProj2DSglPanExp(
+          df = cells_df,
+          point_size = parameters[["point_size"]],
+          point_opacity = parameters[["point_opacity"]],
+          point_border = parameters[["draw_border"]],
+          color_scale = parameters_color[["color_scale"]],
+          color_range = parameters_color[["color_range"]],
+          x_range = parameters[["x_range"]],
+          y_range = parameters[["y_range"]]
+        )
       }
     }
 
@@ -1325,7 +1161,7 @@ observeEvent(input[["expression_projection_export"]], {
   } else {
 
     ## split selection into method and name
-    selection <- strsplit(input[["expression_projection_to_display"]], split = ' // ')[[1]]
+    selection <- strsplit(parameters[["projection"]], split = ' // ')[[1]]
 
     req(
       selection[1] %in% getMethodsForTrajectories(),
@@ -1339,9 +1175,16 @@ observeEvent(input[["expression_projection_export"]], {
     )
 
     ## prepare plot
-    plot <- plotExpressionSinglePanel2DTrajectoryExport(
-      gene_expression_plot_data(),
-      trajectory_data[["edges"]]
+    plot <- pltExpTrj2DSglPanExp(
+      df = cells_df,
+      trajectory_edges = trajectory_data[["edges"]],
+      point_size = parameters[["point_size"]],
+      point_opacity = parameters[["point_opacity"]],
+      point_border = parameters[["draw_border"]],
+      color_scale = parameters_color[["color_scale"]],
+      color_range = parameters_color[["color_range"]],
+      x_range = parameters[["x_range"]],
+      y_range = parameters[["y_range"]]
     )
   }
 
